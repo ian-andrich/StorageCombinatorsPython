@@ -1,0 +1,8 @@
+# Python Stuff
+**.pyc
+**/__pycache__/**
+# Editor Stuff
+**.swo
+**.swp
+# MAKEFILE STUFF
+.refresh_env
