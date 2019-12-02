@@ -1,8 +1,11 @@
 # Python Stuff
 **.pyc
-**/__pycache__/**
+*/__pycache__/**
 # Editor Stuff
 **.swo
 **.swp
+*.mypy_cache*
 # MAKEFILE STUFF
 .refresh_env
+# Notebooks
+notebook/**
