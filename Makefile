@@ -1,5 +1,4 @@
 SHELL=/bin/bash
-CONDAROOT = ~/*conda*/
 
 .PHONY: browser_docs
 browser_docs: docs
