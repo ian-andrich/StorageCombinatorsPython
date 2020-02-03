@@ -1,5 +1,11 @@
 # StorageCombinatorsPython
-This project serves as a library, and living reference to a simple design pattern.
+There is a quote from a scientist, whose name I can't remember that went like this.
+> Over my career I've learned that some things don't have trade offs -- they're just better.
+> These things don't come along very often, maybe once every five to ten years, but whenever I see one of these, I have learned to stop waffling and use it.
+
+Storage Combinators is a better way of organizing, coordinating, and performing your storage related tasks in software.
+
+This project serves as a library, and living reference to a simple way of architecting your storage.
 90% of most modern applications are just shuffling data around.
 Getting data from an API, saving the data to disk (for archiving/logging/observability), putting it in a cache, then putting it in a database.
 
@@ -15,7 +21,6 @@ Caching already seems to work well.
 The basic infrastructure seems to work well with regards to caching (which tends to be harder in most in memory processes).
 
 If we do this, we wind up with Storage Combinators, as detailed by Marcel Weiher in [Storage Combinators](https://www.hpi.uni-potsdam.de/hirschfeld/publications/media/WeiherHirschfeld_2019_StorageCombinators_AcmDL_Preprint.pdf).
-
 
 #### Goals and Features
 Taken From [Things I believe](https://gist.github.com/stettix/5bb2d99e50fdbbd15dd9622837d14e2b).
@@ -50,3 +55,7 @@ Right now this project needs
 6. More feedback on what doesn't make sense and what isn't working with respect to the project at large.
 7. A better "Problem -Why - What - How" pitch.
 8. Tests (we will likely have a decent to moderately complicated testing setup by the end using Jenkins due to possible atomic write issues with filesystems).
+
+# Concerns We need to Address
+Tracing (what path through the combinator tree did we take?)
+Visualization (what does my storage tree look like?)
