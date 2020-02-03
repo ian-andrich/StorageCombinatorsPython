@@ -3,7 +3,7 @@ There is a quote from a scientist, whose name I can't remember that went like th
 > Over my career I've learned that some things don't have trade offs -- they're just better.
 > These things don't come along very often, maybe once every five to ten years, but whenever I see one of these, I have learned to stop waffling and use it.
 
-Storage Combinators is a better way of organizing, coordinating, and performing your storage related tasks in software.
+Storage Combinators provide a way of organizing, coordinating, and performing your storage related tasks in your App or Backend.
 
 This project serves as a library, and living reference to a simple way of architecting your storage.
 90% of most modern applications are just shuffling data around.
