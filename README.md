@@ -22,6 +22,25 @@ The basic infrastructure seems to work well with regards to caching (which tends
 
 If we do this, we wind up with Storage Combinators, as detailed by Marcel Weiher in [Storage Combinators](https://www.hpi.uni-potsdam.de/hirschfeld/publications/media/WeiherHirschfeld_2019_StorageCombinators_AcmDL_Preprint.pdf).
 
+### When Not To Use
+
+If you have a simple cli-app that doesn't interact with storage at all -- there is very little upside for using this library.
+
+
+If you are designing a well scoped system that has well defined storage requirements that will be well managed by a simple file store or SQL server use case.  Again storage combinators are of spurious use here.
+
+You are running a more algorithmic heavy application with minimal applications -- think Classical Unix tooling.
+
+### When To Use
+
+If you have complex caching requirements.  Storage combinators make it easy to facilitate caching and cache-invalidation across your stack.  They might even let you forgo a Redis/Memcached layer entirely.  It can be as few as two lines of code to swap out a Redis cache for an in memory cache for your server.
+
+If you think you might want to migrate storage backends for some or all of your entities.  Storage Combinators make it easy to fork the output of your entities so you can do a slow deploy on the migration without fully dedicating to it.
+
+You have mixed storage requirements, or your storage requirements are rapidly evolving.  Storage Combinators make it easy to migrate and handle rapidly evolving storage requirements.
+
+You have data serving different purposes with different retention requirements, etc.  Storage Combinators can facilitate handling storage requirements with mixed concerns.
+
 #### Goals and Features
 Taken From [Things I believe](https://gist.github.com/stettix/5bb2d99e50fdbbd15dd9622837d14e2b).
 1. A better system is often a smaller, simpler system.
