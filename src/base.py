@@ -59,7 +59,11 @@ class DictStore(AbstractStorage):
             pass
 
 
-class DiskStoreText(AbstractStorage):
+class StorageEndpoint(AbstractStorage):
+    pass
+
+
+class DiskStoreText(StorageEndpoint):
     def __init__(self):
         pass
 
@@ -82,6 +86,22 @@ class DiskStoreText(AbstractStorage):
 
     def delete_at(self, ref: Reference):
         pathlib.Path(ref.path).unlink()
+
+
+class DiskStoreBytes(DiskStoreText):
+    def get(self, ref: Reference):
+        return pathlib.Path(ref.path).read_bytes()
+
+    def post(self, ref: Reference, obj: str):
+        with tempfile.NamedTemporaryFile(mode="wb+", delete=False) as f:
+            name = f.name
+            f.write(obj)
+
+        try:
+            pathlib.Path(f.name).rename(ref.path)
+        except Exception as e:
+            pathlib.Path(name).unlink()
+            raise e
 
 
 class PassThroughStore(AbstractStorage):
@@ -163,9 +183,11 @@ class JSONStore(BaseMappingStore):
 class PickleStore(BaseMappingStore):
     """
     The pickle store is responsible for pickling and unpickling objects.
+    By default it chooses a dictionary backend, but it is more appropriate
+    to choose a file system based store for most use cases.
     """
 
-    def __init__(self, store=DictStore()):
+    def __init__(self, store: AbstractStorage = DictStore()):
         super().__init__(store=store)
 
     def map_to_store(self, obj: t.Any, ref: Reference) -> bytes:
