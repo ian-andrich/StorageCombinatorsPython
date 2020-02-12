@@ -9,3 +9,5 @@
 *.mypy_cache*
 # Notebooks
 notebook/**
+# Documentation Stuff
+docs/_build/**
