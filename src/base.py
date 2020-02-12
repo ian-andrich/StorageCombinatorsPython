@@ -23,7 +23,7 @@ class AbstractStorage(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def post(self, ref: Reference, obj: t.Any):
+    def put(self, ref: Reference, obj: t.Any):
         pass
 
     @abc.abstractmethod
@@ -46,7 +46,7 @@ class DictStore(AbstractStorage):
     def get(self, ref: Reference):
         return self._data[(ref.scheme, ref.path)]
 
-    def post(self, ref: Reference, obj: t.Any):
+    def put(self, ref: Reference, obj: t.Any):
         self._data[(ref.scheme, ref.path)] = obj
 
     def merge(self, ref: Reference, obj: t.Any):
@@ -70,7 +70,7 @@ class DiskStoreText(StorageEndpoint):
     def get(self, ref: Reference):
         return pathlib.Path(ref.path).read_text()
 
-    def post(self, ref: Reference, obj: str):
+    def put(self, ref: Reference, obj: str):
         with tempfile.NamedTemporaryFile(mode="w+", delete=False) as f:
             name = f.name
             f.write(obj)
@@ -82,7 +82,7 @@ class DiskStoreText(StorageEndpoint):
             raise e
 
     def merge(self, ref: Reference, obj: str):
-        self.post(ref, obj)
+        self.put(ref, obj)
 
     def delete_at(self, ref: Reference):
         pathlib.Path(ref.path).unlink()
@@ -92,7 +92,7 @@ class DiskStoreBytes(DiskStoreText):
     def get(self, ref: Reference):
         return pathlib.Path(ref.path).read_bytes()
 
-    def post(self, ref: Reference, obj: str):
+    def put(self, ref: Reference, obj: str):
         with tempfile.NamedTemporaryFile(mode="wb+", delete=False) as f:
             name = f.name
             f.write(obj)
@@ -111,8 +111,8 @@ class PassThroughStore(AbstractStorage):
     def get(self, ref: Reference):
         return self._other.get(ref)
 
-    def post(self, ref: Reference, obj: t.Any):
-        self._other.post(ref, obj)
+    def put(self, ref: Reference, obj: t.Any):
+        self._other.put(ref, obj)
 
     def merge(self, ref: Reference, obj: t.Any):
         self._other.merge(ref, obj)
@@ -150,8 +150,8 @@ class BaseMappingStore(AbstractStorage):
     def get(self, ref: Reference):
         return self.map_retrieved(self.source.get(self.map_ref(ref)), ref)
 
-    def post(self, ref: Reference, obj: t.Any):
-        self.source.post(self.map_ref(ref), self.map_to_store(obj, ref))
+    def put(self, ref: Reference, obj: t.Any):
+        self.source.put(self.map_ref(ref), self.map_to_store(obj, ref))
 
     def merge(self, ref: Reference, obj: t.Any):
         self.source.merge(self.map_ref(ref), self.map_to_store(obj, ref))
@@ -215,8 +215,8 @@ class Switch(AbstractStorage):
     def get(self, ref: Reference) -> t.Any:
         return self.store_for_ref(ref).get(ref)
 
-    def post(self, ref: Reference, obj: t.Any):
-        self.store_for_ref(ref).post(ref, obj)
+    def put(self, ref: Reference, obj: t.Any):
+        self.store_for_ref(ref).put(ref, obj)
 
     def merge(self, ref: Reference, obj: t.Any):
         self.store_for_ref(ref).merge(ref, obj)
