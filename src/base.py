@@ -141,7 +141,8 @@ class PassThroughStore(AbstractStorage):
 
 class BaseMappingStore(AbstractStorage):
     """
-    This class handles serialization for pulling things and putting things into storage.
+    This class handles serialization for pulling things and putting
+    things into storage.
 
     Need to provide instances of the source property and the map_ref, map_retrieved
     and map_to_store functions to implement the functionality.
@@ -320,3 +321,105 @@ class FilePathMapper(RelativeStore):
         old_path = pathlib.Path(ref.path)
         new_path = self.base_dir / old_path
         return Reference(schema, new_path.as_posix())
+
+
+class RestOperation:
+    def __init__(self, op: str, ref: Reference):
+        self._operation = op
+        self._ref = ref
+
+    @property
+    def operation(self) -> str:
+        return self._operation
+
+    @property
+    def ref(self) -> Reference:
+        return self._ref
+
+
+class GetOperation(RestOperation):
+    def __init__(self, ref: Reference):
+        super().__init__("GET", ref)
+
+
+class PutOperation(RestOperation):
+    def __init__(self, ref: Reference):
+        super().__init__("PUT", ref)
+
+
+class MergeOperation(RestOperation):
+    def __init__(self, ref: Reference):
+        super().__init__("MERGE", ref)
+
+
+class DeleteOperation(RestOperation):
+    def __init__(self, ref: Reference):
+        super().__init__("DELETE", ref)
+
+
+class FilterBase(abc.ABC):
+    @abc.abstractmethod
+    def write(self, RestOperation):
+        pass
+
+
+class LoggingStore(PassThroughStore):
+    """
+    Passes through the seen operation to the supporting Filter.
+
+    Operations are just reified verbs allowing the LoggingStore to work with a
+    filter.
+    """
+
+    def __init__(self, filter_: FilterBase):
+        self.filter_ = filter_
+
+    def get(self, ref: Reference):
+        op = GetOperation(ref)
+        self.filter_.write(op)
+
+    def put(self, ref: Reference, obj: t.Any):
+        op = PutOperation(ref)
+        self.filter_.write(op)
+
+    def merge(self, ref: Reference, obj: t.Any):
+        op = MergeOperation(ref)
+        self.filter_.write(op)
+
+    def delete_at(self, ref: Reference):
+        op = DeleteOperation(ref)
+        self.filter_.write(op)
+
+
+class Copier(FilterBase):
+    """
+    This class copies modifying operations (PUT MERGE DELETE) through
+    from the source to the target.
+    """
+
+    def __init__(self, source: AbstractStorage, target: AbstractStorage):
+        self.source = source
+        self.target = target
+
+    def write(self, op: RestOperation):
+        """
+        Writes the op from source to target.
+
+        Raises a ValueError if op.operation isn't one of GET, PUT,
+        MERGE, DELETE
+        """
+        if op.operation != "GET":
+            ref = op.ref
+            op_text = op.operation
+            if op_text == "PUT":
+                self.target.put(ref, self.source.get(ref))
+            elif op_text == "MERGE":
+                self.target.merge(ref, self.source.get(ref))
+            elif op_text == "DELETE":
+                self.target.delete_at(ref)
+        elif op.operation == "GET":
+            pass
+        else:
+            raise ValueError(
+                f"Expected {op.operation} to be one of GET, PUT, MERGE, DELETE."
+            )

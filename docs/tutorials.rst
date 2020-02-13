@@ -120,7 +120,7 @@ OK, MappingStores serialize/deserialize (and redirect), PassThroughStores handle
 
 A couple of examples from the code include :class:`~base.PickleStore` and :class:`~base.JSONStore`.
 
-Lets look at a few that actually **do something interesting.
+Lets look at a few that actually **do something** interesting.
 Currently we only have :class:`~base.DiskStoreText` and :class:`~base.DiskStoreBytes` implemented.
 
 These write text and byte data directly to the disk.
