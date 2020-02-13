@@ -7,4 +7,4 @@ stop:
 	sudo docker-compose stop
 
 clean:
-	sudo docker-compose clean
+	sudo docker-compose down --rmi all --remove-orphans
