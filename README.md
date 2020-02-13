@@ -65,9 +65,9 @@ Tracing (what path through the combinator tree did we take?)
 Visualization (what does my storage tree look like?)
 
 # 1.0 Roadmap
-1. Add SQLAlchemy support.
-2. Add Mongo support.
-3. Add Redis support.
+1. Add SQLAlchemy support. Testing skeleton in place.
+2. Add Mongo support. Testing skeleton in place.
+3. Add Redis support. Testing skeleton in place.
 4. Add Kafka support.
 5. Add Amazon S3 support.
 6. Add Logging Combinator support.  DONE
