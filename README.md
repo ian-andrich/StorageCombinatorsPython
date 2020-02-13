@@ -42,6 +42,9 @@ You have data serving different purposes with different retention requirements, 
 
 You are already running and happy with GraphQL.  You aren't really having caching issues, etc.  Consider adding GraphQL endpoints mounted to a StorageCombinators switch.  This gives you nice, matching semantics for in process storage.
 
+### Try It!!
+[![Run on Repl.it](https://repl.it/badge/github/ian-andrich/StorageCombinatorsPython)](https://repl.it/github/ian-andrich/StorageCombinatorsPython)
+
 # Contribution Guidelines
 Read the [Storage Combinators Paper](https://www.hpi.uni-potsdam.de/hirschfeld/publications/media/WeiherHirschfeld_2019_StorageCombinators_AcmDL_Preprint.pdf).
 Think.
