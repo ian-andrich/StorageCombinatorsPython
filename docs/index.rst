@@ -10,6 +10,8 @@ Welcome to Storage Combinators Python's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   ./tutorials.rst
+
 
 
 Indices and tables
