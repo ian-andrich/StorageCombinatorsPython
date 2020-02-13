@@ -38,6 +38,10 @@ You have mixed storage requirements, or your storage requirements are rapidly ev
 
 You have data serving different purposes with different retention requirements, access patterns, etc.  Storage Combinators can facilitate handling storage requirements with mixed concerns.
 
+### Ambiguous Use Cases
+
+You are already running and happy with GraphQL.  You aren't really having caching issues, etc.  Consider adding GraphQL endpoints mounted to a StorageCombinators switch.  This gives you nice, matching semantics for in process storage.
+
 # Contribution Guidelines
 Read the [Storage Combinators Paper](https://www.hpi.uni-potsdam.de/hirschfeld/publications/media/WeiherHirschfeld_2019_StorageCombinators_AcmDL_Preprint.pdf).
 Think.
@@ -66,11 +70,11 @@ Visualization (what does my storage tree look like?)
 3. Add Redis support.
 4. Add Kafka support.
 5. Add Amazon S3 support.
-6. Add Logging Combinator support.
+6. Add Logging Combinator support.  DONE
 7. Add threading and async support.
 8. Tracing support
 9. Visualization support for a given pipeline.
-10. Sphinx docs.
+10. Sphinx docs.  IN PROGRESS
 11. Travis CI testing setup
 12. PyTest tests.
 
