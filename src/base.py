@@ -1,6 +1,5 @@
 import abc
 import json
-import os
 import pathlib
 import pickle
 import typing as t
@@ -17,8 +16,16 @@ class Reference(object):
         self.path_components = self.path.lstrip("/").split("/")
         self.scheme = scheme
 
+    def __str__(self):
+        return f"<{self.__class__.__name__} scheme={self.scheme} path={self.path}>"
+
 
 class AbstractStorage(abc.ABC):
+    """
+    This implements the Storage interface that is used by StorageEndpoints
+    and Storage Combinators.
+    """
+
     @abc.abstractmethod
     def get(self, ref: Reference):
         pass
@@ -36,7 +43,30 @@ class AbstractStorage(abc.ABC):
         pass
 
 
-class DictStore(AbstractStorage):
+class PassThroughStore(AbstractStorage):
+    """
+    This is a base class which implements pass through stores.  This
+    implementation does nothing.  Overwrite the :meth:`get`, :meth:`put`,
+    :meth:`merge` :meth:`delete_at` methods to make use of these.
+    """
+
+    def __init__(self, store: AbstractStorage):
+        self._other = store
+
+    def get(self, ref: Reference):
+        return self._other.get(ref)
+
+    def put(self, ref: Reference, obj: t.Any):
+        self._other.put(ref, obj)
+
+    def merge(self, ref: Reference, obj: t.Any):
+        self._other.merge(ref, obj)
+
+    def delete_at(self, ref: Reference):
+        self._other.delete_at(ref)
+
+
+class DictStore(PassThroughStore):
     """
     DictStores are a basic in memory store to use for testing
     """
@@ -61,6 +91,13 @@ class DictStore(AbstractStorage):
 
 
 class StorageEndpoint(AbstractStorage):
+    """
+    This is a base class that signifies that this perists something on a
+    persistent medium.  In the future we plan to allow for the ability
+    to introspect and modify these to be dict stores for testing scenarios
+    or for tracing applications.
+    """
+
     pass
 
 
@@ -122,30 +159,14 @@ class DiskStoreBytes(DiskStoreText):
             raise e
 
 
-class PassThroughStore(AbstractStorage):
-    def __init__(self, store: AbstractStorage):
-        self._other = store
-
-    def get(self, ref: Reference):
-        return self._other.get(ref)
-
-    def put(self, ref: Reference, obj: t.Any):
-        self._other.put(ref, obj)
-
-    def merge(self, ref: Reference, obj: t.Any):
-        self._other.merge(ref, obj)
-
-    def delete_at(self, ref: Reference):
-        self._other.delete_at(ref)
-
-
 class BaseMappingStore(AbstractStorage):
     """
     This class handles serialization for pulling things and putting
     things into storage.
 
-    Need to provide instances of the source property and the map_ref, map_retrieved
-    and map_to_store functions to implement the functionality.
+    Need to provide instances of the source property and the map_ref,
+    map_retrieved and map_to_store functions to implement the
+    functionality.
 
     Default implementation leaves these as no-ops.
     """
@@ -304,9 +325,7 @@ class FilePathMapper(RelativeStore):
     """
 
     def __init__(
-        self,
-        file_store: AbstractStorage,
-        base_dir: t.Union[str, pathlib.Path] = os.path.abspath(os.curdir),
+        self, file_store: AbstractStorage, base_dir: t.Union[str, pathlib.Path] = ".",
     ):
         super().__init__(file_store)
         if isinstance(base_dir, str):
@@ -336,6 +355,9 @@ class RestOperation:
     def ref(self) -> Reference:
         return self._ref
 
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__} " f"op={self.operation} ref={self.ref}>"
+
 
 class GetOperation(RestOperation):
     def __init__(self, ref: Reference):
@@ -358,8 +380,16 @@ class DeleteOperation(RestOperation):
 
 
 class FilterBase(abc.ABC):
+    """
+    This is the base class for implementing the filters in the Pipes and
+    Filters idioms we can make use of using the :class:`LoggingStore` class.
+
+    Overwrite the :meth:`~base.FilterBase.write` method to make use of
+    this class.
+    """
+
     @abc.abstractmethod
-    def write(self, RestOperation):
+    def write(self, op: RestOperation):
         pass
 
 
@@ -371,22 +401,28 @@ class LoggingStore(PassThroughStore):
     filter.
     """
 
-    def __init__(self, filter_: FilterBase):
+    def __init__(self, target: AbstractStorage, filter_: FilterBase):
+        super().__init__(target)
         self.filter_ = filter_
 
-    def get(self, ref: Reference):
+    def get(self, ref: Reference) -> t.Any:
+        val = super().get(ref)
         op = GetOperation(ref)
         self.filter_.write(op)
+        return val
 
     def put(self, ref: Reference, obj: t.Any):
+        super().put(ref, obj)
         op = PutOperation(ref)
         self.filter_.write(op)
 
     def merge(self, ref: Reference, obj: t.Any):
+        super().merge(ref, obj)
         op = MergeOperation(ref)
         self.filter_.write(op)
 
     def delete_at(self, ref: Reference):
+        super().delete_at(ref)
         op = DeleteOperation(ref)
         self.filter_.write(op)
 
@@ -423,3 +459,13 @@ class Copier(FilterBase):
             raise ValueError(
                 f"Expected {op.operation} to be one of GET, PUT, MERGE, DELETE."
             )
+
+
+class PrintFilter(FilterBase):
+    """
+    This filter simply prints what is passed into it with the operation
+    logged and the path of the reference.
+    """
+
+    def write(self, op: RestOperation):
+        print(f"{op}")

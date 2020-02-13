@@ -11,6 +11,7 @@ Welcome to Storage Combinators Python's documentation!
    :caption: Contents:
 
    ./tutorials.rst
+   ./code.rst
 
 
 

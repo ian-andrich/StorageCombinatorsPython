@@ -149,7 +149,51 @@ Lets say we wanted to pickle an object to a file on the disk, and keep an in mem
    >>> "hello" not in os.listdir()  # The file has been deleted
    True
 
-Wow.
-
 Again it's only five lines to set up the core logic.
-The rest of the code is simply validating that storage happened at all.
+
+Lets go over what we did.
+We used the mappers :class:`~base.PickleStore` and :class:`~base.FilePathMapper` to choose a base folder, and to map our object to the bytes serialized pickle format.
+Then we persisted it to the disk using :class:`~base.DiskStoreBytes`.
+Above that we had a cache for an in memory copy of our object.
+
+Pipes and Filters
+.................
+
+Lets talk a bit about something we haven't gone over much.
+
+Pipes and filters.
+
+We've made some noise that **Storage Combinators** enable us to use a pipes and filters approach to programming.
+
+The Pipes and Filters approach is enabled by the :class:`~base.LoggingStore` and :class:`~base.FilterBase` classes.
+The logging store works like a regular combinator, but it holds a reference to :class:`~base.FilterBase` as a property.
+
+:class:`~base.FilterBase` has a single method of interest :meth:`~base.Filterbase.write`.
+Filters will overwrite this class to do something interesting with it.
+
+You can use these to implement notifications, or provide a log of access to a store.
+Frankly, theres a lot we can do with them, but lets focus on a simple one.
+
+Let's say we are interested in access patterns for the store we implemented in the last example.
+
+   >>> import base
+   >>> file_system = base.DiskStoreBytes()  # Base File system store -- defaults to current dir
+   >>> pickle_mapper = base.PickleStore(file_system)  # Pickle Serializer
+   >>> fs_mapper = base.FilePathMapper(pickle_mapper)  # File System set to the current directory
+   >>> in_mem_cache = base.DictStore()  # In memory cache
+   >>> printing_filter = base.PrintFilter
+   >>> store = base.CacheStore(fs_mapper, in_mem_cache)  # The combined store
+   >>> print_filter = base.PrintFilter()  # The print filter
+   >>> logged_store = base.LoggingStore(store, print_filter)  # The logging store
+   >>> data = "Storage check!"
+   >>> ref = base.Reference("blah", "hello")
+   >>> logged_store.put(ref, data)
+   <PutOperation op=PUT ref=<Reference scheme=blah path=hello>>
+   >>> x = logged_store.get(ref)
+   <GetOperation op=GET ref=<Reference scheme=blah path=hello>>
+   >>> logged_store.delete_at(ref)
+   <DeleteOperation op=DELETE ref=<Reference scheme=blah path=hello>>
+
+Now we get them logged directly to our console on stdoud (channel 1).
+
+We can implement other logs ourself by inspecting :class:`~base.PrintFilter` and overwriting its :meth:`~base.PrintFilter.write` method.
