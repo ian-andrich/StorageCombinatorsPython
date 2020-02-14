@@ -6,7 +6,7 @@ The Hello World Demo
 
 Here we will set up a simple in memory store.
 
-   >>> from base import *
+   >>> from src.base import *
    >>> store = DictStore()
    >>> ref = Reference("dict", "greeting")
    >>> entity = "Hello World!"
@@ -30,7 +30,7 @@ The 20 Second Elevator Pitch
 
 Lets try something a little more complicated for those already losing interest.
 
-    >>> from base import *
+    >>> from src.base import *
     >>> # Initialize the entity and references.
     >>> ref = Reference("entities", "greeting")
     >>> entity = "Hello world!"
@@ -75,7 +75,7 @@ Storage combinators enable advanced syncing and caching of data with minimal eff
 A Little More Slowly Now
 ------------------------
 
-Storage Combinators makes use of two broad classes of objects :class:`~base.Reference` and :class:`~base.AbstractStorage`
+Storage Combinators makes use of two broad classes of objects :class:`~src.base.Reference` and :class:`~src.base.AbstractStorage`
 
 References play the role of URIs.
 For those who haven't worked with them URIs are Uniform Resource Identifiers.
@@ -118,10 +118,10 @@ For now just notice that it's potentially useful, to "redirect" people to storag
 
 OK, MappingStores serialize/deserialize (and redirect), PassThroughStores handle storage logic relating to caching and other storage concerns.
 
-A couple of examples from the code include :class:`~base.PickleStore` and :class:`~base.JSONStore`.
+A couple of examples from the code include :class:`~src.base.PickleStore` and :class:`~src.base.JSONStore`.
 
 Lets look at a few that actually **do something** interesting.
-Currently we only have :class:`~base.DiskStoreText` and :class:`~base.DiskStoreBytes` implemented.
+Currently we only have :class:`~src.base.DiskStoreText` and :class:`~src.base.DiskStoreBytes` implemented.
 
 These write text and byte data directly to the disk.
 
@@ -129,14 +129,14 @@ Lets try using these ideas.
 
 Lets say we wanted to pickle an object to a file on the disk, and keep an in memory store of it, for fast access.
 
-   >>> import base
-   >>> file_system = base.DiskStoreBytes()  # Base File system store -- defaults to current dir
-   >>> pickle_mapper = base.PickleStore(file_system)  # Pickle Serializer
-   >>> fs_mapper = base.FilePathMapper(pickle_mapper)  # File System set to the current directory
-   >>> in_mem_cache = base.DictStore()  # In memory cache
-   >>> store = base.CacheStore(fs_mapper, in_mem_cache)  # The combined store
+   >>> import src.base
+   >>> file_system = src.base.DiskStoreBytes()  # Base File system store -- defaults to current dir
+   >>> pickle_mapper = src.base.PickleStore(file_system)  # Pickle Serializer
+   >>> fs_mapper = src.base.FilePathMapper(pickle_mapper)  # File System set to the current directory
+   >>> in_mem_cache = src.base.DictStore()  # In memory cache
+   >>> store = src.base.CacheStore(fs_mapper, in_mem_cache)  # The combined store
    >>> data = "Storage check!"
-   >>> ref = base.Reference("blah", "hello")
+   >>> ref = src.base.Reference("blah", "hello")
    >>> store.put(ref, data)  # Put the data in the store at the reference
    >>> in_mem_cache.get(ref) == data  # The in memory cache is working!
    True
@@ -152,8 +152,8 @@ Lets say we wanted to pickle an object to a file on the disk, and keep an in mem
 Again it's only five lines to set up the core logic.
 
 Lets go over what we did.
-We used the mappers :class:`~base.PickleStore` and :class:`~base.FilePathMapper` to choose a base folder, and to map our object to the bytes serialized pickle format.
-Then we persisted it to the disk using :class:`~base.DiskStoreBytes`.
+We used the mappers :class:`~src.base.PickleStore` and :class:`~src.base.FilePathMapper` to choose a src.base folder, and to map our object to the bytes serialized pickle format.
+Then we persisted it to the disk using :class:`~src.base.DiskStoreBytes`.
 Above that we had a cache for an in memory copy of our object.
 
 Pipes and Filters
@@ -165,10 +165,10 @@ Pipes and filters.
 
 We've made some noise that **Storage Combinators** enable us to use a pipes and filters approach to programming.
 
-The Pipes and Filters approach is enabled by the :class:`~base.LoggingStore` and :class:`~base.FilterBase` classes.
-The logging store works like a regular combinator, but it holds a reference to :class:`~base.FilterBase` as a property.
+The Pipes and Filters approach is enabled by the :class:`~src.base.LoggingStore` and :class:`~src.base.FilterBase` classes.
+The logging store works like a regular combinator, but it holds a reference to :class:`~src.base.FilterBase` as a property.
 
-:class:`~base.FilterBase` has a single method of interest :meth:`~base.Filterbase.write`.
+:class:`~src.base.FilterBase` has a single method of interest :meth:`~src.base.Filterbase.write`.
 Filters will overwrite this class to do something interesting with it.
 
 You can use these to implement notifications, or provide a log of access to a store.
@@ -176,17 +176,17 @@ Frankly, theres a lot we can do with them, but lets focus on a simple one.
 
 Let's say we are interested in access patterns for the store we implemented in the last example.
 
-   >>> import base
-   >>> file_system = base.DiskStoreBytes()  # Base File system store -- defaults to current dir
-   >>> pickle_mapper = base.PickleStore(file_system)  # Pickle Serializer
-   >>> fs_mapper = base.FilePathMapper(pickle_mapper)  # File System set to the current directory
-   >>> in_mem_cache = base.DictStore()  # In memory cache
-   >>> printing_filter = base.PrintFilter
-   >>> store = base.CacheStore(fs_mapper, in_mem_cache)  # The combined store
-   >>> print_filter = base.PrintFilter()  # The print filter
-   >>> logged_store = base.LoggingStore(store, print_filter)  # The logging store
+   >>> import src.base
+   >>> file_system = src.base.DiskStoreBytes()  # Base File system store -- defaults to current dir
+   >>> pickle_mapper = src.base.PickleStore(file_system)  # Pickle Serializer
+   >>> fs_mapper = src.base.FilePathMapper(pickle_mapper)  # File System set to the current directory
+   >>> in_mem_cache = src.base.DictStore()  # In memory cache
+   >>> printing_filter = src.base.PrintFilter
+   >>> store = src.base.CacheStore(fs_mapper, in_mem_cache)  # The combined store
+   >>> print_filter = src.base.PrintFilter()  # The print filter
+   >>> logged_store = src.base.LoggingStore(store, print_filter)  # The logging store
    >>> data = "Storage check!"
-   >>> ref = base.Reference("blah", "hello")
+   >>> ref = src.base.Reference("blah", "hello")
    >>> logged_store.put(ref, data)
    <PutOperation op=PUT ref=<Reference scheme=blah path=hello>>
    >>> x = logged_store.get(ref)
@@ -196,4 +196,4 @@ Let's say we are interested in access patterns for the store we implemented in t
 
 Now we get them logged directly to our console on stdoud (channel 1).
 
-We can implement other logs ourself by inspecting :class:`~base.PrintFilter` and overwriting its :meth:`~base.PrintFilter.write` method.
+We can implement other logs ourself by inspecting :class:`~src.base.PrintFilter` and overwriting its :meth:`~src.base.PrintFilter.write` method.

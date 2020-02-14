@@ -12,6 +12,7 @@ Welcome to Storage Combinators Python's documentation!
 
    ./tutorials.rst
    ./code.rst
+   ./backends.rst
 
 
 
