@@ -6,4 +6,4 @@ services:
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     ports:
-      - 8082:8082
+      - 8082:6379

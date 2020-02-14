@@ -1,0 +1,3 @@
+{"mongo": 8000,
+"redis": 8002,
+"postgres": 8001}

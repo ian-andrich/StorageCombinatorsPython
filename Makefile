@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-.PHONY: env docs backends_up backends_down docs_html docs_latex
+.PHONY: env docs backends_up backends_down docs_html docs_latex docs_doctest tests
 env: .refresh_env
 
 .refresh_env: env.yml
@@ -9,11 +9,14 @@ env: .refresh_env
 
 docs: backends_up docs_html docs_latex
 
-docs_html:
+docs_html: docs_doctest
 	(cd docs; make html)
 
-docs_latex:
+docs_latex: docs_doctest
 	(cd docs; make latexpdf)
+
+docs_doctest: src/* backends_up
+	(cd docs; make doctest)
 
 backends_up: .backend_up
 
