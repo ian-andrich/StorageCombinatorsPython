@@ -2,6 +2,7 @@
 
 up: docker-compose.yml
 	sudo docker-compose up -d
+	sleep 2
 
 stop:
 	sudo docker-compose stop

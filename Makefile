@@ -24,6 +24,9 @@ backends_down:
 	(cd tests/backends/; make stop)
 	rm .backend_up
 
+test_libs: backends_up env
+	python -m pytest tests/libs
+
 .backend_up:
 	(cd tests/backends/; make up)
 	touch .backend_up

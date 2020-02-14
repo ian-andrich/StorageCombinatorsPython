@@ -6,4 +6,5 @@ services:
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     ports:
-      - 8082:6379
+      - 8002:6379
+    command: redis-server --protected-mode no
