@@ -9,13 +9,13 @@ env: .refresh_env
 
 docs: backends_up docs_html docs_latex
 
-docs_html: docs_doctest
+docs_html: docs_doctest env
 	(cd docs; make html)
 
-docs_latex: docs_doctest
+docs_latex: docs_doctest env
 	(cd docs; make latexpdf)
 
-docs_doctest: src/* backends_up
+docs_doctest: src/* backends_up env
 	(cd docs; make doctest)
 
 backends_up: .backend_up
