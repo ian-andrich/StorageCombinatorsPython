@@ -21,6 +21,14 @@ What have we done?
 3. Put our entity at the "address" given by the reference.
 4. Retrieved the entity from the given address, then printed it.
 
+Visualized -- this collection of stores looks like this.
+
+.. graphviz::
+
+   digraph basics {
+      "store" [shape=box]
+   }
+
 This is the bare bones of how to work with Storage combinators.
 
 They provide a way of addressing, storing, retrieving, updating, and deleting the entities in your system.
@@ -29,6 +37,21 @@ The 20 Second Elevator Pitch
 ----------------------------
 
 Lets try something a little more complicated for those already losing interest.
+
+We'll build this collection of stores.
+
+.. graphviz::
+
+   digraph first_run {
+      "top_level_store" -> "first_cache"
+      "top_level_store" -> "in_memory"
+      "first_cache" -> "db"
+      "first_cache" -> "redis_cache"
+      "in_memory" [shape=box]
+      "db" [shape=box]
+      "redis_cache" [shape=box]}
+
+Relatively straightforward.
 
     >>> from src.base import *
     >>> # Initialize the entity and references.
@@ -109,6 +132,11 @@ Pass Through Stores, and Mapping Stores.
 
 Mapping Stores transform either the data or the URI.
 
+Here are the ones provided by our :mod:`src.base`.
+
+.. inheritance-diagram:: src.base.JSONStore src.base.PickleStore
+   :top-classes: src.base.AbstractStorage
+
 Think of how we serialize our applications core data objects to JSON, or we translate them into a format that our ORM is happy with before we serialize them.
 
 URI transformations are a more complicated topic, and relate more strongly to the architecture of your application.
@@ -123,11 +151,29 @@ A couple of examples from the code include :class:`~src.base.PickleStore` and :c
 Lets look at a few that actually **do something** interesting.
 Currently we only have :class:`~src.base.DiskStoreText` and :class:`~src.base.DiskStoreBytes` implemented.
 
+.. inheritance-diagram:: src.base.DiskStoreText src.base.DiskStoreBytes
+   :top-classes: src.base.AbstractStorage
+
 These write text and byte data directly to the disk.
 
 Lets try using these ideas.
 
 Lets say we wanted to pickle an object to a file on the disk, and keep an in memory store of it, for fast access.
+
+Visualized:
+
+.. graphviz::
+   :caption: Fancier this time
+
+   digraph pickled {
+      "store" -> "fs_mapper";
+      "store" -> "in_mem_cache";
+      "fs_mapper" -> "pickle_mapper" -> "file_system";
+      "file_system" [shape="box"];
+      "in_mem_cache" [shape="box"];
+   }
+
+Ok, lets try it.
 
    >>> import src.base
    >>> file_system = src.base.DiskStoreBytes()  # Base File system store -- defaults to current dir
@@ -168,6 +214,11 @@ We've made some noise that **Storage Combinators** enable us to use a pipes and 
 The Pipes and Filters approach is enabled by the :class:`~src.base.LoggingStore` and :class:`~src.base.FilterBase` classes.
 The logging store works like a regular combinator, but it holds a reference to :class:`~src.base.FilterBase` as a property.
 
+Heres the class hierarchy.
+
+.. inheritance-diagram:: src.base.DiskStoreText src.base.DiskStoreBytes
+   :top-classes: src.base.AbstractStorage
+
 :class:`~src.base.FilterBase` has a single method of interest :meth:`~src.base.Filterbase.write`.
 Filters will overwrite this class to do something interesting with it.
 
@@ -175,6 +226,22 @@ You can use these to implement notifications, or provide a log of access to a st
 Frankly, theres a lot we can do with them, but lets focus on a simple one.
 
 Let's say we are interested in access patterns for the store we implemented in the last example.
+
+Heres the plan:
+
+.. graphviz::
+
+   digraph logged_stores {
+      "logged_store" -> "store" -> "fs_mapper" -> "pickle_mapper" -> "file_system"
+      "logged_store" -> "print_filter"
+      "store" -> "in_mem_cache"
+      "in_mem_cache" [shape=box]
+      "file_system" [shape=box]
+      "logged_store" [shape=diamond]
+      "print_filter" [shape=house]
+   }
+
+Lets do it.
 
    >>> import src.base
    >>> file_system = src.base.DiskStoreBytes()  # Base File system store -- defaults to current dir
@@ -197,3 +264,11 @@ Let's say we are interested in access patterns for the store we implemented in t
 Now we get them logged directly to our console on stdoud (channel 1).
 
 We can implement other logs ourself by inspecting :class:`~src.base.PrintFilter` and overwriting its :meth:`~src.base.PrintFilter.write` method.
+
+Under the hood :class:`~src.base.FilterBase` make use of the :class:`~src.base.RestOperation` classes.
+
+We can see them here in this inheritance diagram.
+
+.. inheritance-diagram:: src.base.GetOperation src.base.PutOperation src.base.MergeOperation src.base.DeleteOperation
+   :top-classes: src.base.RestOperation
+   :parts: 1

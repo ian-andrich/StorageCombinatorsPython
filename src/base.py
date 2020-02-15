@@ -136,7 +136,7 @@ class DiskStoreText(DiskStoreBase):
             raise e
 
 
-class DiskStoreBytes(DiskStoreText):
+class DiskStoreBytes(DiskStoreBase):
     def get(self, ref: Reference):
         return pathlib.Path(ref.path).read_bytes()
 

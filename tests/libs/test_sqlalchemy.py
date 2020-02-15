@@ -46,3 +46,4 @@ class User(Base):
 def test_semantics():
     with get_engine() as conn:
         Base.metadata.create_all(conn)
+        ed_user = User(name="ed", fullname="Ed Jones", nickname="edsnickname")
