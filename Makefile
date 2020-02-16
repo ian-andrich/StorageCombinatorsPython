@@ -24,7 +24,7 @@ backends_stop:
 	(cd tests/backends/; make stop)
 	rm .backend_up
 
-backends_clean:
+backends_clean: backends_stop
 	(cd tests/backends/; make clean_all)
 
 test_libs: backends_up env
