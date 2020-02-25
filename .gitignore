@@ -12,4 +12,5 @@
 notebook/**
 # Documentation Stuff
 docs/_build/**
-src/sphinx-pyreverse/**
+**sphinx-pyreverse**
+
