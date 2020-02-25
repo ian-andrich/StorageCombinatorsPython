@@ -1,9 +1,7 @@
 Code Overview
 =============
-
 The Base Module
 ---------------
-
 .. inheritance-diagram:: src.base
    :parts: 1
    :top-classes: src.base.AbstractStorage src.base.FilterBase
@@ -20,6 +18,7 @@ The Base Module
 
 The Redis Module
 ----------------
+
 .. automodule:: src.redis
    :members:
    :inherited-members:

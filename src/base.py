@@ -66,7 +66,18 @@ class PassThroughStore(AbstractStorage):
         self._other.delete_at(ref)
 
 
-class DictStore(PassThroughStore):
+class StorageEndpoint(PassThroughStore):
+    """
+    This is a base class that signifies that this perists something on a
+    persistent medium.  In the future we plan to allow for the ability
+    to introspect and modify these to be dict stores for testing scenarios
+    or for tracing applications.
+    """
+
+    pass
+
+
+class DictStore(StorageEndpoint):
     """
     DictStores are a basic in memory store to use for testing
     """
@@ -90,17 +101,6 @@ class DictStore(PassThroughStore):
             pass
 
 
-class StorageEndpoint(AbstractStorage):
-    """
-    This is a base class that signifies that this perists something on a
-    persistent medium.  In the future we plan to allow for the ability
-    to introspect and modify these to be dict stores for testing scenarios
-    or for tracing applications.
-    """
-
-    pass
-
-
 class DiskStoreBase(StorageEndpoint):
     def merge(self, ref: Reference, obj):
         self.put(ref, obj)
@@ -110,8 +110,8 @@ class DiskStoreBase(StorageEndpoint):
 
 
 class DiskStoreText(DiskStoreBase):
-    def __init__(self):
-        pass
+    def __init__(self, tmp_suffix=".tmp"):
+        self._tmp_suffix = tmp_suffix
 
     def get(self, ref: Reference):
         return pathlib.Path(ref.path).read_text()
@@ -119,7 +119,7 @@ class DiskStoreText(DiskStoreBase):
     def put(self, ref: Reference, obj):
         # Write as a file with a `.` prepended then moving.
         target_path = pathlib.Path(ref.path)
-        temp_path = target_path.with_suffix(".tmp")
+        temp_path = target_path.with_suffix(self._tmp_suffix)
         temp_path.write_text(obj)
 
         try:  # Careful with the transactional semantics
@@ -137,12 +137,15 @@ class DiskStoreText(DiskStoreBase):
 
 
 class DiskStoreBytes(DiskStoreBase):
+    def __init__(self, tmp_suffix=".tmp"):
+        self._tmp_suffix = tmp_suffix
+
     def get(self, ref: Reference):
         return pathlib.Path(ref.path).read_bytes()
 
     def put(self, ref: Reference, obj):
         target_path = pathlib.Path(ref.path)
-        temp_path = target_path.with_suffix(".tmp")
+        temp_path = target_path.with_suffix(self._tmp_suffix)
         temp_path.write_bytes(obj)
 
         try:  # Careful with the transactional semantics
@@ -157,132 +160,6 @@ class DiskStoreBytes(DiskStoreBase):
                 target_path.write_bytes(old_data)
             temp_path.unlink()
             raise e
-
-
-class BaseMappingStore(AbstractStorage):
-    """
-    This class handles serialization for pulling things and putting
-    things into storage.
-
-    Need to provide instances of the source property and the map_ref,
-    map_retrieved and map_to_store functions to implement the
-    functionality.
-
-    Default implementation leaves these as no-ops.
-    """
-
-    def __init__(self, store: AbstractStorage, *args, **kwargs):
-        self._source = store
-
-    @property
-    def source(self) -> AbstractStorage:
-        return self._source
-
-    def map_ref(self, ref: Reference) -> t.Any:
-        return ref
-
-    def map_retrieved(self, obj: t.Any, ref: Reference):
-        return obj
-
-    def map_to_store(self, obj: t.Any, ref: Reference):
-        return obj
-
-    def get(self, ref: Reference):
-        return self.map_retrieved(self.source.get(self.map_ref(ref)), ref)
-
-    def put(self, ref: Reference, obj: t.Any):
-        self.source.put(self.map_ref(ref), self.map_to_store(obj, ref))
-
-    def merge(self, ref: Reference, obj: t.Any):
-        self.source.merge(self.map_ref(ref), self.map_to_store(obj, ref))
-
-    def delete_at(self, ref: Reference):
-        self.source.delete_at(self.map_ref(ref))
-
-
-_JSONScalars = t.Union[float, int, str]
-
-
-class JSONStore(BaseMappingStore):
-    """
-    The JSON store is responsible for marshalling and unmarshalling json.
-    """
-
-    def __init__(self, store=DictStore()):
-        super().__init__(store=store)
-
-    def map_to_store(self, obj: t.Any, ref: Reference) -> str:
-        return json.dumps(obj)
-
-    def map_retrieved(
-        self, obj: t.Any, ref: Reference
-    ) -> t.Union[dict, list, _JSONScalars]:
-        return json.loads(obj)
-
-
-class PickleStore(BaseMappingStore):
-    """
-    The pickle store is responsible for pickling and unpickling objects.
-    By default it chooses a dictionary backend, but it is more appropriate
-    to choose a file system based store for most use cases.
-    """
-
-    def __init__(self, store: AbstractStorage = DictStore()):
-        super().__init__(store=store)
-
-    def map_to_store(self, obj: t.Any, ref: Reference) -> bytes:
-        return pickle.dumps(obj)
-
-    def map_retrieved(self, obj: bytes, ref: Reference) -> t.Any:
-        return pickle.loads(obj)
-
-
-class Switch(AbstractStorage):
-    def __init__(self, backing_storage=DictStore()):
-        self._backing_storage = backing_storage
-
-    @property
-    def backing_store(self):
-        self._backing_storage
-
-    @abc.abstractmethod
-    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
-        pass
-
-    def store_for_ref(self, ref: Reference) -> AbstractStorage:
-        return self.backing_store.get(self.reference_switch_logic(ref))
-
-    def get(self, ref: Reference) -> t.Any:
-        return self.store_for_ref(ref).get(ref)
-
-    def put(self, ref: Reference, obj: t.Any):
-        self.store_for_ref(ref).put(ref, obj)
-
-    def merge(self, ref: Reference, obj: t.Any):
-        self.store_for_ref(ref).merge(ref, obj)
-
-    def delete_at(self, ref: Reference):
-        self.store_for_ref(ref).delete_at(ref)
-
-
-class SchemeSwitch(Switch):
-    def __init__(self, backing_store: AbstractStorage = DictStore()):
-        super().__init__(backing_storage=backing_store)
-
-    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
-        return ref.scheme
-
-    @property
-    def backing_store(self) -> AbstractStorage:
-        return self._backing_storage
-
-
-class FirstPathSwitch(Switch):
-    def __init__(self, backing_store: AbstractStorage = DictStore()):
-        super().__init__(backing_storage=backing_store)
-
-    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
-        return ref.path_components[0]
 
 
 class CacheStore(PassThroughStore):
@@ -311,35 +188,6 @@ class CacheStore(PassThroughStore):
     def merge(self, ref: Reference, obj: t.Any):
         self.cache.merge(ref, obj)
         self.base.merge(ref, obj)
-
-
-class RelativeStore(BaseMappingStore):
-    pass
-
-
-class FilePathMapper(RelativeStore):
-    """
-    This file path mapper prepends the given path to the given Reference.
-
-    The default path is the current working directory.
-    """
-
-    def __init__(
-        self, file_store: AbstractStorage, base_dir: t.Union[str, pathlib.Path] = ".",
-    ):
-        super().__init__(file_store)
-        if isinstance(base_dir, str):
-            self.base_dir = pathlib.Path(base_dir)
-        elif isinstance(base_dir, pathlib.Path):
-            self.base_dir = base_dir
-        else:
-            raise TypeError(f"Base dir must be str or Path but was {type(base_dir)}")
-
-    def map_ref(self, ref: Reference):
-        schema = ref.scheme
-        old_path = pathlib.Path(ref.path)
-        new_path = self.base_dir / old_path
-        return Reference(schema, new_path.as_posix())
 
 
 class RestOperation:
@@ -444,20 +292,19 @@ class Copier(FilterBase):
         Raises a ValueError if op.operation isn't one of GET, PUT,
         MERGE, DELETE
         """
-        if op.operation != "GET":
-            ref = op.ref
-            op_text = op.operation
-            if op_text == "PUT":
-                self.target.put(ref, self.source.get(ref))
-            elif op_text == "MERGE":
-                self.target.merge(ref, self.source.get(ref))
-            elif op_text == "DELETE":
-                self.target.delete_at(ref)
-        elif op.operation == "GET":
+        ref = op.ref
+        op_text = op.operation
+        if op_text == "PUT":
+            self.target.put(ref, self.source.get(ref))
+        elif op_text == "MERGE":
+            self.target.merge(ref, self.source.get(ref))
+        elif op_text == "DELETE":
+            self.target.delete_at(ref)
+        elif op_text == "GET":
             pass
         else:
             raise ValueError(
-                f"Expected {op.operation} to be one of GET, PUT, MERGE, DELETE."
+                f"Expected {op_text} to be one of GET, PUT, MERGE, DELETE."
             )
 
 
@@ -469,3 +316,158 @@ class PrintFilter(FilterBase):
 
     def write(self, op: RestOperation):
         print(f"{op}")
+
+
+class BaseMappingStore(AbstractStorage):
+    """
+    This class handles serialization for pulling things and putting
+    things into storage.
+
+    Need to provide instances of the source property and the map_ref,
+    map_retrieved and map_to_store functions to implement the
+    functionality.
+
+    Default implementation leaves these as no-ops.
+    """
+
+    def __init__(self, store: AbstractStorage, *args, **kwargs):
+        self._source = store
+
+    @property
+    def source(self) -> AbstractStorage:
+        return self._source
+
+    def map_ref(self, ref: Reference) -> t.Any:
+        return ref
+
+    def map_retrieved(self, obj: t.Any, ref: Reference):
+        return obj
+
+    def map_to_store(self, obj: t.Any, ref: Reference):
+        return obj
+
+    def get(self, ref: Reference):
+        return self.map_retrieved(self.source.get(self.map_ref(ref)), ref)
+
+    def put(self, ref: Reference, obj: t.Any):
+        self.source.put(self.map_ref(ref), self.map_to_store(obj, ref))
+
+    def merge(self, ref: Reference, obj: t.Any):
+        self.source.merge(self.map_ref(ref), self.map_to_store(obj, ref))
+
+    def delete_at(self, ref: Reference):
+        self.source.delete_at(self.map_ref(ref))
+
+
+_JSONScalars = t.Union[float, int, str]
+
+
+class JSONStore(BaseMappingStore):
+    """
+    The JSON store is responsible for marshalling and unmarshalling json.
+    """
+
+    def __init__(self, store=DictStore()):
+        super().__init__(store=store)
+
+    def map_to_store(self, obj: t.Any, ref: Reference) -> str:
+        return json.dumps(obj)
+
+    def map_retrieved(
+        self, obj: t.Any, ref: Reference
+    ) -> t.Union[dict, list, _JSONScalars]:
+        return json.loads(obj)
+
+
+class PickleStore(BaseMappingStore):
+    """
+    The pickle store is responsible for pickling and unpickling objects.
+    By default it chooses a dictionary backend, but it is more appropriate
+    to choose a file system based store for most use cases.
+    """
+
+    def __init__(self, store: AbstractStorage = DictStore()):
+        super().__init__(store=store)
+
+    def map_to_store(self, obj: t.Any, ref: Reference) -> bytes:
+        return pickle.dumps(obj)
+
+    def map_retrieved(self, obj: bytes, ref: Reference) -> t.Any:
+        return pickle.loads(obj)
+
+
+class RelativeStore(BaseMappingStore):
+    pass
+
+
+class FilePathMapper(RelativeStore):
+    """
+    This file path mapper prepends the given path to the given Reference.
+
+    The default path is the current working directory.
+    """
+
+    def __init__(
+        self, file_store: AbstractStorage, base_dir: t.Union[str, pathlib.Path] = ".",
+    ):
+        super().__init__(file_store)
+        if isinstance(base_dir, str):
+            self.base_dir = pathlib.Path(base_dir)
+        elif isinstance(base_dir, pathlib.Path):
+            self.base_dir = base_dir
+        else:
+            raise TypeError(f"Base dir must be str or Path but was {type(base_dir)}")
+
+    def map_ref(self, ref: Reference):
+        schema = ref.scheme
+        old_path = pathlib.Path(ref.path)
+        new_path = self.base_dir / old_path
+        return Reference(schema, new_path.as_posix())
+
+
+class Switch(AbstractStorage):
+    def __init__(self, backing_storage=DictStore()):
+        self._backing_storage = backing_storage
+
+    @property
+    def backing_store(self):
+        self._backing_storage
+
+    @abc.abstractmethod
+    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
+        pass
+
+    def store_for_ref(self, ref: Reference) -> AbstractStorage:
+        return self.backing_store.get(self.reference_switch_logic(ref))
+
+    def get(self, ref: Reference) -> t.Any:
+        return self.store_for_ref(ref).get(ref)
+
+    def put(self, ref: Reference, obj: t.Any):
+        self.store_for_ref(ref).put(ref, obj)
+
+    def merge(self, ref: Reference, obj: t.Any):
+        self.store_for_ref(ref).merge(ref, obj)
+
+    def delete_at(self, ref: Reference):
+        self.store_for_ref(ref).delete_at(ref)
+
+
+class SchemeSwitch(Switch):
+    def __init__(self, backing_store: AbstractStorage = DictStore()):
+        super().__init__(backing_storage=backing_store)
+
+    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
+        return ref.scheme
+
+    @property
+    def backing_store(self) -> AbstractStorage:
+        return self._backing_storage
+
+
+class FirstPathSwitch(Switch):
+    def __init__(self, backing_store: AbstractStorage = DictStore()):
+        super().__init__(backing_storage=backing_store)
+
+    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
+        return ref.path_components[0]

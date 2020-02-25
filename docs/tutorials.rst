@@ -1,6 +1,5 @@
 Tutorials
 =========
-
 The Hello World Demo
 --------------------
 
@@ -123,8 +122,8 @@ The secret sauce is the Storage Combinators themselves.
 
 They have REST semantics -- get, put, merge, delete_at.  It's just REST, and pipes and filters the whole way down.
 
-A Tour of the Combinators
--------------------------
+A Tour of the Storage Interface
+-------------------------------
 
 We have two main categories of Storage Combinators.
 
@@ -203,7 +202,7 @@ Then we persisted it to the disk using :class:`~src.base.DiskStoreBytes`.
 Above that we had a cache for an in memory copy of our object.
 
 Pipes and Filters
-.................
+-----------------
 
 Lets talk a bit about something we haven't gone over much.
 
