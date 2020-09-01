@@ -13,4 +13,4 @@ notebook/**
 # Documentation Stuff
 docs/_build/**
 **sphinx-pyreverse**
-
+.DS_Store

@@ -1,13 +1,13 @@
 .PHONY: up halt clean clean_all
 
 up: docker-compose.yml
-	sudo docker-compose up -d
+	docker-compose up -d
 
 stop:
-	sudo docker-compose stop
+	docker-compose stop
 
 clean:
-	sudo docker-compose down -v
+	docker-compose down -v
 
 clean_all: clean
-	sudo docker-compose down --rmi all --remove-orphans
+	docker-compose down --rmi all --remove-orphans

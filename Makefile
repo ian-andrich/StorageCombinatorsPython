@@ -7,7 +7,7 @@ env: .refresh_env
 	conda env create -f env.yml || conda env update -f env.yml
 	touch .refresh_env
 
-docs: backends_up docs_html docs_latex
+docs: backends_up docs_html docs_latex backends_stop
 
 docs_html: docs_doctest env
 	(cd docs; make html)

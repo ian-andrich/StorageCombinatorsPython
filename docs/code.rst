@@ -19,6 +19,20 @@ The Base Module
 The Redis Module
 ----------------
 
+.. inheritance-diagram:: src.redis
+    :parts: 1
+
+.. doctest::
+
+    >>> from src.redis import RedisConnectionPool
+    >>> store = RedisConnectionPool(port=8002)
+    >>> from src.base import Reference
+    >>> ref = Reference("redis", "foo")
+    >>> store.put(ref, "hello")
+    >>> store.get(ref)
+    b'hello'
+    >>> store.delete_at(ref)
+
 .. automodule:: src.redis
    :members:
    :inherited-members:
