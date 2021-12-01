@@ -66,15 +66,24 @@ class PassThroughStore(AbstractStorage):
         self._other.delete_at(ref)
 
 
-class StorageEndpoint(PassThroughStore):
+class StorageEndpoint(AbstractStorage):
     """
     This is a base class that signifies that this perists something on a
     persistent medium.  In the future we plan to allow for the ability
     to introspect and modify these to be dict stores for testing scenarios
     or for tracing applications.
+
+    Requires implementing the :meth:`mount` and :meth:`unmount` methods
+    for things with a connection pool like sqlalchemy or redis.
+
+    Default mount unmount logic is to do nothing.
     """
 
-    pass
+    def mount(self) -> None:
+        pass
+
+    def dismount(self) -> None:
+        pass
 
 
 class DictStore(StorageEndpoint):
@@ -408,7 +417,9 @@ class FilePathMapper(RelativeStore):
     """
 
     def __init__(
-        self, file_store: AbstractStorage, base_dir: t.Union[str, pathlib.Path] = ".",
+        self,
+        file_store: AbstractStorage,
+        base_dir: t.Union[str, pathlib.Path] = ".",
     ):
         super().__init__(file_store)
         if isinstance(base_dir, str):
@@ -471,3 +482,39 @@ class FirstPathSwitch(Switch):
 
     def reference_switch_logic(self, ref: Reference) -> t.Hashable:
         return ref.path_components[0]
+
+
+class StorageRouter(Switch):
+    def __init__(self):
+        self.base = {}
+
+    def reference_switch_logic(self, ref: Reference) -> t.Hashable:
+        return ref.path_components[0]
+
+    def get(self, ref: Reference) -> StorageEndpoint:
+        components = ref.path_components
+        current = self.base
+        for path_part in components:
+            current = current.get(path_part)
+            if current is not None and not isinstance(current, dict):
+                return current
+
+        raise KeyError(f"No storage endpoint found for {ref}")
+
+    def put(self, ref: Reference, endpoint: StorageEndpoint):
+        components = ref.path_components
+        current = self.base
+        for path_part in components[:-1]:
+            if path_part not in current:
+                current[path_part] = {}
+            current = current[path_part]
+        current[components[-1]] = endpoint
+
+    def merge(self, ref: Reference, endpoint: StorageEndpoint):
+        self.put(ref, endpoint)
+
+    def delete(self, ref: Reference):
+        components = ref.path_components
+        current = self.base
+        for path_part in components:
+            current = current[path_part]

@@ -1,5 +1,3 @@
-"""
-"""
 from src import base
 import weakref
 
